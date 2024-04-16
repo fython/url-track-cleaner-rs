@@ -1,0 +1,17 @@
+[package]
+name = "url-track-cleaner"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "A simple library for cleaning track elements in urls"
+documentation = "https://docs.rs/url-track-cleaner"
+repository = "https://github.com/fython/url-track-cleaner-rs"
+readme = "README.md"
+
+[dependencies]
+anyhow = "1.0.82"
+regex = "1.10.4"
+reqwest = "0.12.3"
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.115"
+tokio = { version = "1.37.0", features = ["full"] }
