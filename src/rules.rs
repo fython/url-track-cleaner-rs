@@ -1,10 +1,12 @@
 use anyhow::Result;
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize, Serializer};
 
 /// A rule defines how to reserve queries in urls matching the rule.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ReserveRule {
-    #[serde(deserialize_with = "deserialize_regex", serialize_with = "serialize_regex")]
+    #[cfg_attr(feature = "serde", serde(deserialize_with = "deserialize_regex", serialize_with = "serialize_regex"))]
     pub url_match: regex::Regex,
     pub reserve_queries: Vec<String>,
 }
@@ -26,6 +28,7 @@ impl ReserveRule {
     }
 }
 
+#[cfg(feature = "serde")]
 fn serialize_regex<S>(v: &regex::Regex, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
@@ -33,6 +36,7 @@ where
     serializer.serialize_str(v.as_str())
 }
 
+#[cfg(feature = "serde")]
 fn deserialize_regex<'de, D>(deserializer: D) -> Result<regex::Regex, D::Error>
 where
     D: serde::Deserializer<'de>,
@@ -45,6 +49,7 @@ where
 pub mod tests {
     use super::*;
 
+    #[cfg(feature = "serde")]
     #[test]
     pub fn test_rule_deserialize() -> Result<()> {
         let rule_str = r#"{"url_match":"^http(s)?://www.bilibili.com/.*","reserve_queries":["t"]}"#;
