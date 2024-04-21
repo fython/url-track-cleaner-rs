@@ -8,7 +8,7 @@ use crate::rules::ReserveRule;
 const DEFAULT_USER_AGENT: &'static str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
 
 /// Redirect policy for `UrlTrackCleaner`
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum RedirectPolicy {
     None,
     All,
@@ -35,7 +35,7 @@ impl RedirectPolicy {
 }
 
 /// Cleaner for tracking url
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct UrlTrackCleaner {
     follow_redirect: RedirectPolicy,
     reserve_rules: Vec<ReserveRule>,
