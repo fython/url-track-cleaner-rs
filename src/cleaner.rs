@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 use anyhow::{format_err, Result};
 use reqwest::{header, redirect, IntoUrl, Url};
+use tokio::net::lookup_host;
 
 use crate::rules::ReserveRule;
 
@@ -28,7 +29,7 @@ impl RedirectPolicy {
             RedirectPolicy::Domains(domains) => {
                 let domain = url.domain().unwrap_or("");
                 domains.iter().any(|d| domain.ends_with(d))
-            },
+            }
             _ => true,
         }
     }
@@ -65,7 +66,7 @@ impl UrlTrackCleaner {
     }
 
     /// Construct a builder for `UrlTrackCleaner`
-    /// 
+    ///
     /// This is same as `UrlTrackCleanerBuilder::new()`
     pub fn builder() -> UrlTrackCleanerBuilder {
         UrlTrackCleanerBuilder::new()
@@ -77,7 +78,7 @@ impl UrlTrackCleaner {
         U: IntoUrl,
     {
         let mut url = url.into_url()?;
-        if self.follow_redirect.test_url(&url) {
+        if !self.skip_redirect(&url).await {
             let rsp = self
                 .client
                 .get(url)
@@ -96,6 +97,18 @@ impl UrlTrackCleaner {
             };
         }
         Ok(self.do_clean_without_http_check(url))
+    }
+
+    async fn skip_redirect(&self, url: &Url) -> bool {
+        if !self.follow_redirect.test_url(url) {
+            return true;
+        }
+        if let Some(host) = url.host_str() {
+            if let Ok(host) = lookup_host(host).await {
+                return host.count() < 1;
+            }
+        }
+        return true;
     }
 
     /// Clean the url by the reserve rules without http check.

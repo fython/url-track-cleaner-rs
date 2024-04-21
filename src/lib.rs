@@ -20,6 +20,16 @@ pub mod tests {
     }
 
     #[tokio::test]
+    pub async fn test_clean_localhost() -> Result<()> {
+        let cleaner = UrlTrackCleaner::builder()
+            .follow_redirect(RedirectPolicy::All)
+            .build();
+        let cleaned = cleaner.do_clean("http://localhost/?test=1").await?;
+        println!("cleaned url: {} {}", cleaned, cleaned.as_str());
+        Ok(())
+    }
+
+    #[tokio::test]
     pub async fn test_clean_bilibili_with_reserving_timestamp() {
         let reserve_rules: Vec<ReserveRule> = vec![ReserveRule::new_with_regex(
             r#"^http(s)?://www.bilibili.com/.*"#,
