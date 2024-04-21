@@ -2,40 +2,45 @@ use std::str::FromStr;
 
 use anyhow::{format_err, Result};
 use reqwest::{header, redirect, IntoUrl, Url};
+use serde::{Deserialize, Serialize};
 use tokio::net::lookup_host;
 
+use crate::policy::RedirectPolicy;
 use crate::rules::ReserveRule;
 
 const DEFAULT_USER_AGENT: &'static str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
 
-/// Redirect policy for `UrlTrackCleaner`
-#[derive(Clone, Debug)]
-pub enum RedirectPolicy {
-    None,
-    All,
-    Domains(Vec<String>),
-}
-
-impl Default for RedirectPolicy {
-    fn default() -> Self {
-        RedirectPolicy::None
-    }
-}
-
-impl RedirectPolicy {
-    pub fn test_url(&self, url: &Url) -> bool {
-        match self {
-            RedirectPolicy::None => false,
-            RedirectPolicy::Domains(domains) => {
-                let domain = url.domain().unwrap_or("");
-                domains.iter().any(|d| domain.ends_with(d))
-            }
-            _ => true,
-        }
-    }
-}
-
 /// Cleaner for tracking url
+///
+/// # Builder
+///
+/// This struct can be constructed by `UrlTrackCleanerBuilder`.
+///
+/// # Serialization
+///
+/// You can deserialize builder by serde. Then build this struct from the builder.
+///
+/// # Example
+///
+/// ```
+/// #use url_track_cleaner::{UrlTrackCleaner, UrlTrackCleanerBuilder, ReserveRule, RedirectPolicy};
+///
+/// ##[tokio::main]
+/// #async fn main() {
+/// let reserve_rules: Vec<ReserveRule> = vec![ReserveRule::new_with_regex(
+///   r#"^http(s)?://www.bilibili.com/.*"#,
+///   vec!["t".to_string()],
+/// ).expect("failed to create reserve rule")];
+/// let cleaner = UrlTrackCleaner::builder()
+///   .reserve_rules(reserve_rules)
+///   .build();
+/// let cleaned = cleaner
+///   .do_clean("https://www.bilibili.com/video/BV11111?t=360&track_id=2")
+///   .await
+///   .expect("failed to clean url");
+/// println!("cleaned url: {}", cleaned);
+/// #}
+/// ```
 #[derive(Clone, Debug)]
 pub struct UrlTrackCleaner {
     follow_redirect: RedirectPolicy,
@@ -78,6 +83,7 @@ impl UrlTrackCleaner {
         U: IntoUrl,
     {
         let mut url = url.into_url()?;
+        // test if the redirection check should be skipped
         if !self.skip_redirect(&url).await {
             let rsp = self
                 .client
@@ -113,6 +119,7 @@ impl UrlTrackCleaner {
 
     /// Clean the url by the reserve rules without http check.
     fn do_clean_without_http_check(&self, url: Url) -> Url {
+        // Check if the url matches any reserve rules
         for rule in &self.reserve_rules {
             if rule.url_match.is_match(&url.to_string()) {
                 let mut url = url;
@@ -128,6 +135,7 @@ impl UrlTrackCleaner {
                 return url;
             }
         }
+        // If the url does not match any reserve rules, remove all queries
         let mut url = url;
         url.set_query(None);
         url
@@ -135,36 +143,53 @@ impl UrlTrackCleaner {
 }
 
 /// Builder for `UrlTrackCleaner`
+///
+/// # Serialization
+///
+/// This struct can be serialized and deserialized by serde.
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct UrlTrackCleanerBuilder {
     follow_redirect: RedirectPolicy,
     reserve_rules: Vec<ReserveRule>,
     user_agent: Option<String>,
 }
 
-impl UrlTrackCleanerBuilder {
-    pub fn new() -> Self {
+impl Default for UrlTrackCleanerBuilder {
+    fn default() -> Self {
         Self {
             follow_redirect: Default::default(),
             reserve_rules: Default::default(),
             user_agent: None,
         }
     }
+}
 
+impl UrlTrackCleanerBuilder {
+    /// Construct a new `UrlTrackCleanerBuilder`
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the redirect policy for the cleaner
     pub fn follow_redirect(mut self, follow_redirect: RedirectPolicy) -> Self {
         self.follow_redirect = follow_redirect;
         self
     }
 
+    /// Set the reserve rules for the cleaner
     pub fn reserve_rules(mut self, reserve_rules: Vec<ReserveRule>) -> Self {
         self.reserve_rules = reserve_rules;
         self
     }
 
+    /// Set the user agent for the cleaner
     pub fn user_agent(mut self, user_agent: String) -> Self {
         self.user_agent = Some(user_agent);
         self
     }
 
+    /// Build the `UrlTrackCleaner`
     pub fn build(self) -> UrlTrackCleaner {
         let mut cleaner = UrlTrackCleaner::default();
         cleaner.follow_redirect = self.follow_redirect;

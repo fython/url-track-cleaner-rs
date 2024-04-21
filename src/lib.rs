@@ -1,7 +1,9 @@
 mod cleaner;
 mod rules;
+mod policy;
 
-pub use cleaner::{RedirectPolicy, UrlTrackCleaner, UrlTrackCleanerBuilder};
+pub use policy::RedirectPolicy;
+pub use cleaner::{UrlTrackCleaner, UrlTrackCleanerBuilder};
 pub use rules::ReserveRule;
 
 #[cfg(test)]
