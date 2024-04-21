@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 use anyhow::{format_err, Result};
 use reqwest::{header, redirect, IntoUrl, Url};
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use tokio::net::lookup_host;
 
