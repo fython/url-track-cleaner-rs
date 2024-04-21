@@ -115,6 +115,8 @@ impl UrlTrackCleaner {
                 return url;
             }
         }
+        let mut url = url;
+        url.set_query(None);
         url
     }
 }
