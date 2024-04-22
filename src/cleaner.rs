@@ -115,7 +115,7 @@ impl UrlTrackCleaner {
                 return host.count() < 1;
             }
         }
-        return true;
+        return false;
     }
 
     /// Clean the url by the reserve rules without http check.
